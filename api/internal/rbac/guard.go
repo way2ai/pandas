@@ -1,6 +1,7 @@
 package rbac
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/way2ai/pandas/api/internal/auth"
@@ -10,6 +11,8 @@ import (
 type sessionGetter interface {
 	SessionByID(id string) (auth.Session, error)
 }
+
+type sessionContextKey struct{}
 
 func RequireRole(cookieName string, sessions sessionGetter, allow func(string) bool, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -48,6 +51,12 @@ func RequireRole(cookieName string, sessions sessionGetter, allow func(string) b
 			return
 		}
 
-		next.ServeHTTP(w, r)
+		ctx := context.WithValue(r.Context(), sessionContextKey{}, currentSession)
+		next.ServeHTTP(w, r.WithContext(ctx))
 	})
+}
+
+func SessionFromContext(ctx context.Context) (auth.Session, bool) {
+	currentSession, ok := ctx.Value(sessionContextKey{}).(auth.Session)
+	return currentSession, ok
 }

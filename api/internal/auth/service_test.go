@@ -71,3 +71,24 @@ func TestLogoutRemovesSession(t *testing.T) {
 		t.Fatalf("expected %q, got %v", auth.ErrSessionNotFound.Error(), err)
 	}
 }
+
+func TestDisableUserRevokesExistingSessions(t *testing.T) {
+	service := auth.NewInMemoryService()
+	if err := service.SeedUser("admin@example.com", "admin", "password123", "platform_admin", "active"); err != nil {
+		t.Fatalf("seed user: %v", err)
+	}
+
+	currentSession, err := service.Login("admin@example.com", "password123", "127.0.0.1")
+	if err != nil {
+		t.Fatalf("login: %v", err)
+	}
+
+	if err := service.SetUserStatus("admin@example.com", "disabled"); err != nil {
+		t.Fatalf("disable user: %v", err)
+	}
+
+	_, err = service.SessionByID(currentSession.ID)
+	if err == nil || err.Error() != auth.ErrSessionNotFound.Error() {
+		t.Fatalf("expected %q, got %v", auth.ErrSessionNotFound.Error(), err)
+	}
+}

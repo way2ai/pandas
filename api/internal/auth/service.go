@@ -96,6 +96,13 @@ func (s *InMemoryService) SetUserStatus(identifier, status string) error {
 	user.Status = status
 	s.users[user.Email] = user
 	s.users[user.Username] = user
+	if status != "active" {
+		for sessionID, currentSession := range s.sessions {
+			if currentSession.UserEmail == user.Email {
+				delete(s.sessions, sessionID)
+			}
+		}
+	}
 	return nil
 }
 
@@ -135,13 +142,18 @@ func (s *InMemoryService) Login(identifier, password, ip string) (Session, error
 
 func (s *InMemoryService) SessionByID(id string) (Session, error) {
 	s.mu.RLock()
-	defer s.mu.RUnlock()
-
 	session, ok := s.sessions[id]
 	if !ok {
+		s.mu.RUnlock()
 		return Session{}, ErrSessionNotFound
 	}
 	if session.ExpiresAt.Before(time.Now()) {
+		s.mu.RUnlock()
+		return Session{}, ErrSessionNotFound
+	}
+	user, ok := s.users[session.UserEmail]
+	s.mu.RUnlock()
+	if !ok || user.Status != "active" {
 		return Session{}, ErrSessionNotFound
 	}
 	return session, nil

@@ -5,7 +5,9 @@ import (
 	"errors"
 	"net"
 	"net/http"
+	"strings"
 
+	"github.com/way2ai/pandas/api/internal/audit"
 	"github.com/way2ai/pandas/api/internal/httpx"
 	"github.com/way2ai/pandas/api/internal/session"
 )
@@ -14,6 +16,7 @@ type Handler struct {
 	service      *InMemoryService
 	cookieName   string
 	cookieSecure bool
+	audit        *audit.InMemoryService
 }
 
 type loginRequest struct {
@@ -21,11 +24,12 @@ type loginRequest struct {
 	Password   string `json:"password"`
 }
 
-func NewHandler(service *InMemoryService, cookieName string, cookieSecure bool) *Handler {
+func NewHandler(service *InMemoryService, cookieName string, cookieSecure bool, auditService *audit.InMemoryService) *Handler {
 	return &Handler{
 		service:      service,
 		cookieName:   cookieName,
 		cookieSecure: cookieSecure,
+		audit:        auditService,
 	}
 }
 
@@ -46,6 +50,12 @@ func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, http.StatusBadRequest, httpx.TraceID(r.Context()), "bad_request", "invalid request body")
 		return
 	}
+	req.Identifier = strings.TrimSpace(req.Identifier)
+	req.Password = strings.TrimSpace(req.Password)
+	if req.Identifier == "" || req.Password == "" {
+		httpx.WriteError(w, http.StatusBadRequest, httpx.TraceID(r.Context()), "bad_request", "identifier and password are required")
+		return
+	}
 
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
@@ -63,11 +73,13 @@ func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, ErrUserDisabled):
 			code = "user_disabled"
 		}
+		h.recordAudit("login", "failure", httpx.TraceID(r.Context()))
 
 		httpx.WriteError(w, status, httpx.TraceID(r.Context()), code, err.Error())
 		return
 	}
 
+	h.recordAudit("login", "success", httpx.TraceID(r.Context()))
 	session.WriteSessionCookie(w, h.cookieName, currentSession.ID, h.cookieSecure)
 	httpx.WriteJSON(w, http.StatusOK, map[string]any{
 		"trace_id": httpx.TraceID(r.Context()),
@@ -89,12 +101,25 @@ func (h *Handler) handleLogout(w http.ResponseWriter, r *http.Request) {
 	if err == nil && cookie.Value != "" {
 		h.service.Logout(cookie.Value)
 	}
+	h.recordAudit("logout", "success", httpx.TraceID(r.Context()))
 	session.ClearSessionCookie(w, h.cookieName, h.cookieSecure)
 	httpx.WriteJSON(w, http.StatusOK, map[string]any{
 		"trace_id": httpx.TraceID(r.Context()),
 		"data": map[string]string{
 			"status": "logged_out",
 		},
+	})
+}
+
+func (h *Handler) recordAudit(action, result, traceID string) {
+	if h.audit == nil {
+		return
+	}
+
+	h.audit.Record(audit.Event{
+		Action:  action,
+		Result:  result,
+		TraceID: traceID,
 	})
 }
 

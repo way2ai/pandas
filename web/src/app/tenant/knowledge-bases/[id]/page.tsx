@@ -144,80 +144,131 @@ export default function TenantKnowledgeBaseDetailPage({ params }: TenantKnowledg
   }
 
   return (
-    <main>
-      <h1>Tenant Knowledge Base Detail</h1>
-      <p>
-        <a href="/tenant/knowledge-bases">Back to Tenant Knowledge Bases</a>
-      </p>
-      <p>Knowledge Base ID: {knowledgeBaseID || "Loading..."}</p>
-      {isLoading ? <p>Loading tenant knowledge-base details...</p> : null}
-      {errorMessage ? <p role="alert">{errorMessage}</p> : null}
-      <section>
-        <h2>Documents</h2>
-        <form onSubmit={(event) => void handleDocumentSubmit(event)}>
-          <label>
-            Document Name
-            <input
-              value={documentName}
-              onChange={(event) => {
-                setDocumentName(event.target.value);
-                setErrorMessage("");
-              }}
-            />
-          </label>
-          <label>
-            Source Type
-            <select
-              value={sourceType}
-              onChange={(event) => {
-                setSourceType(event.target.value);
-                setErrorMessage("");
-              }}
-            >
-              <option value="file">file</option>
-              <option value="url">url</option>
-            </select>
-          </label>
-          <label>
-            Source URI
-            <input
-              value={sourceURI}
-              onChange={(event) => {
-                setSourceURI(event.target.value);
-                setErrorMessage("");
-              }}
-            />
-          </label>
-          <button type="submit" disabled={isSubmittingDocument || !documentName.trim()}>
-            {isSubmittingDocument ? "Adding..." : "Add Tenant Document"}
-          </button>
-        </form>
-        {documents.length === 0 && !isLoading ? <p>No documents found.</p> : null}
-        {documents.length > 0 ? (
-          <ul>
-            {documents.map((document) => (
-              <li key={document.id}>
-                {document.name} - {document.source_type} - {document.status}
-              </li>
-            ))}
-          </ul>
-        ) : null}
+    <main className="page page--compact">
+      <section className="hero">
+        <div className="hero__content stack">
+          <span className="hero__eyebrow">Tenant Knowledge Detail</span>
+          <h1 className="hero__title">Tenant Knowledge Base Detail</h1>
+          <p className="hero__description">租户详情页需要同时承接文档来源、构建队列和多人协作带来的治理视角。</p>
+          <div className="section-actions">
+            <a className="eyebrow-link" href="/tenant/knowledge-bases">
+              Back to Tenant Knowledge Bases
+            </a>
+            {isLoading ? <span className="status-pill">Loading tenant knowledge-base details...</span> : <span className="status-pill">Tenant build lane active</span>}
+          </div>
+          <p>Knowledge Base ID: {knowledgeBaseID || "Loading..."}</p>
+          {errorMessage ? (
+            <p className="alert" role="alert">
+              {errorMessage}
+            </p>
+          ) : null}
+        </div>
+        <div className="hero__stats">
+          <article className="metric">
+            <strong>{documents.length}</strong>
+            <p>document(s) ready for tenant-wide retrieval or pending build.</p>
+          </article>
+          <article className="metric">
+            <strong>{builds.length}</strong>
+            <p>build event(s) available for operational review.</p>
+          </article>
+          <article className="metric">
+            <strong>{documents.some((document) => document.source_type === "url") ? "URL" : "FILE"}</strong>
+            <p>该页天然适合同时承接 URL 抓取与文件上传两类来源。</p>
+          </article>
+        </div>
       </section>
-      <section>
-        <h2>Builds</h2>
-        <button type="button" onClick={() => void handleQueueBuild()} disabled={isSubmittingBuild || documents.length === 0}>
-          {isSubmittingBuild ? "Queueing..." : "Queue Tenant Build"}
-        </button>
-        {builds.length === 0 && !isLoading ? <p>No builds found.</p> : null}
-        {builds.length > 0 ? (
-          <ul>
-            {builds.map((build) => (
-              <li key={build.id}>
-                {build.id} - {build.status} - {build.document_count} docs
-              </li>
-            ))}
-          </ul>
-        ) : null}
+
+      <section className="split-grid">
+        <article className="panel stack">
+          <div className="section__header stack">
+            <span className="section__eyebrow">Source intake</span>
+            <h2 className="section__title">Documents</h2>
+          </div>
+          <form className="form-grid form-grid--inline" onSubmit={(event) => void handleDocumentSubmit(event)}>
+            <label>
+              Document Name
+              <input
+                value={documentName}
+                onChange={(event) => {
+                  setDocumentName(event.target.value);
+                  setErrorMessage("");
+                }}
+                placeholder="Support FAQ"
+              />
+            </label>
+            <label>
+              Source Type
+              <select
+                value={sourceType}
+                onChange={(event) => {
+                  setSourceType(event.target.value);
+                  setErrorMessage("");
+                }}
+              >
+                <option value="file">file</option>
+                <option value="url">url</option>
+              </select>
+            </label>
+            <label>
+              Source URI
+              <input
+                value={sourceURI}
+                onChange={(event) => {
+                  setSourceURI(event.target.value);
+                  setErrorMessage("");
+                }}
+                placeholder="https://example.com/handbook"
+              />
+            </label>
+            <div className="inline-actions">
+              <button className="button button--primary" type="submit" disabled={isSubmittingDocument || !documentName.trim()}>
+                {isSubmittingDocument ? "Adding..." : "Add Tenant Document"}
+              </button>
+            </div>
+          </form>
+          {documents.length === 0 && !isLoading ? <p>No documents found.</p> : null}
+          {documents.length > 0 ? (
+            <div className="list-grid">
+              {documents.map((document) => (
+                <article className="list-card" key={document.id}>
+                  <strong>{document.name} - {document.source_type} - {document.status}</strong>
+                  <div className="badge-row">
+                    <span className="badge">source: {document.source_type}</span>
+                    <span className="badge">status: {document.status}</span>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : null}
+        </article>
+
+        <aside className="panel stack">
+          <div className="section__header stack">
+            <span className="section__eyebrow">Build lane</span>
+            <h2 className="section__title">Builds</h2>
+          </div>
+          <p>租户管理员要能快速判断能否重建、是否积压、以及这次构建影响多少文档。</p>
+          <div className="inline-actions">
+            <button className="button button--primary" type="button" onClick={() => void handleQueueBuild()} disabled={isSubmittingBuild || documents.length === 0}>
+              {isSubmittingBuild ? "Queueing..." : "Queue Tenant Build"}
+            </button>
+          </div>
+          {builds.length === 0 && !isLoading ? <p>No builds found.</p> : null}
+          {builds.length > 0 ? (
+            <div className="list-grid">
+              {builds.map((build) => (
+                <article className="list-card" key={build.id}>
+                  <strong>{build.id} - {build.status} - {build.document_count} docs</strong>
+                  <div className="badge-row">
+                    <span className="badge">status: {build.status}</span>
+                    <span className="badge">docs: {build.document_count}</span>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : null}
+        </aside>
       </section>
     </main>
   );

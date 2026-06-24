@@ -84,33 +84,48 @@ export function SessionShell({ children }: SessionShellProps) {
 
   return (
     <SessionContext.Provider value={session}>
-      <header>
-        <nav>
-          {session?.email ? (
-            <>
-              {canAccessPath("/app", session.system_role) ? <a href="/app">App</a> : null}
-              {canAccessPath("/tenant", session.system_role) ? <a href="/tenant">Tenant</a> : null}
-              {canAccessPath("/admin", session.system_role) ? <a href="/admin">Admin</a> : null}
-            </>
-          ) : (
-            <a href="/login">Login</a>
-          )}
-        </nav>
-        <div>
-          {session?.email ? (
-            <>
-              <span>{session.email}</span>
-              <span>{session.system_role}</span>
-              <button type="button" onClick={() => void handleLogout()}>
-                Sign out
-              </button>
-            </>
-          ) : (
-            <span>Signed out</span>
-          )}
-        </div>
-      </header>
-      {children}
+      <div className="shell">
+        <header className="shell__header">
+          <div className="shell__bar">
+            <div className="shell__brand">
+              <a className="shell__brand-mark" href="/">
+                PD
+              </a>
+              <div className="shell__brand-copy">
+                <a className="shell__brand-title" href="/">
+                  PandaStack AI
+                </a>
+                <span className="shell__brand-subtitle">Knowledge, workflow, tenant ops in one surface.</span>
+              </div>
+            </div>
+            <nav className="shell__nav">
+              {session?.email ? (
+                <>
+                  {canAccessPath("/app", session.system_role) ? <a href="/app">App</a> : null}
+                  {canAccessPath("/tenant", session.system_role) ? <a href="/tenant">Tenant</a> : null}
+                  {canAccessPath("/admin", session.system_role) ? <a href="/admin">Admin</a> : null}
+                </>
+              ) : (
+                <a href="/login">Login</a>
+              )}
+            </nav>
+            <div className="shell__account">
+              {session?.email ? (
+                <>
+                  <span className="shell__account-chip">{session.email}</span>
+                  <span className="shell__account-chip">{session.system_role}</span>
+                  <button className="shell__button" type="button" onClick={() => void handleLogout()}>
+                    Sign out
+                  </button>
+                </>
+              ) : (
+                <span className="shell__account-chip">Signed out</span>
+              )}
+            </div>
+          </div>
+        </header>
+        {children}
+      </div>
     </SessionContext.Provider>
   );
 }

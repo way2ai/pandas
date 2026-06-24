@@ -144,80 +144,131 @@ export default function AppKnowledgeBaseDetailPage({ params }: AppKnowledgeBaseD
   }
 
   return (
-    <main>
-      <h1>App Knowledge Base Detail</h1>
-      <p>
-        <a href="/app/knowledge-bases">Back to App Knowledge Bases</a>
-      </p>
-      <p>Knowledge Base ID: {knowledgeBaseID || "Loading..."}</p>
-      {isLoading ? <p>Loading app knowledge-base details...</p> : null}
-      {errorMessage ? <p role="alert">{errorMessage}</p> : null}
-      <section>
-        <h2>Documents</h2>
-        <form onSubmit={(event) => void handleDocumentSubmit(event)}>
-          <label>
-            Document Name
-            <input
-              value={documentName}
-              onChange={(event) => {
-                setDocumentName(event.target.value);
-                setErrorMessage("");
-              }}
-            />
-          </label>
-          <label>
-            Source Type
-            <select
-              value={sourceType}
-              onChange={(event) => {
-                setSourceType(event.target.value);
-                setErrorMessage("");
-              }}
-            >
-              <option value="file">file</option>
-              <option value="url">url</option>
-            </select>
-          </label>
-          <label>
-            Source URI
-            <input
-              value={sourceURI}
-              onChange={(event) => {
-                setSourceURI(event.target.value);
-                setErrorMessage("");
-              }}
-            />
-          </label>
-          <button type="submit" disabled={isSubmittingDocument || !documentName.trim()}>
-            {isSubmittingDocument ? "Adding..." : "Add Document"}
-          </button>
-        </form>
-        {documents.length === 0 && !isLoading ? <p>No documents found.</p> : null}
-        {documents.length > 0 ? (
-          <ul>
-            {documents.map((document) => (
-              <li key={document.id}>
-                {document.name} - {document.source_type} - {document.status}
-              </li>
-            ))}
-          </ul>
-        ) : null}
+    <main className="page page--compact">
+      <section className="hero">
+        <div className="hero__content stack">
+          <span className="hero__eyebrow">Knowledge Base Detail</span>
+          <h1 className="hero__title">App Knowledge Base Detail</h1>
+          <p className="hero__description">把文档接入、构建排队和当前资产状态放在一个页面，适合继续接真实解析与索引流程。</p>
+          <div className="section-actions">
+            <a className="eyebrow-link" href="/app/knowledge-bases">
+              Back to App Knowledge Bases
+            </a>
+            {isLoading ? <span className="status-pill">Loading app knowledge-base details...</span> : <span className="status-pill">Ready for build queue</span>}
+          </div>
+          <p>Knowledge Base ID: {knowledgeBaseID || "Loading..."}</p>
+          {errorMessage ? (
+            <p className="alert" role="alert">
+              {errorMessage}
+            </p>
+          ) : null}
+        </div>
+        <div className="hero__stats">
+          <article className="metric">
+            <strong>{documents.length}</strong>
+            <p>document(s) already attached to this knowledge base.</p>
+          </article>
+          <article className="metric">
+            <strong>{builds.length}</strong>
+            <p>build record(s) visible for this workspace slice.</p>
+          </article>
+          <article className="metric">
+            <strong>{documents.length === 0 ? "Wait" : "Go"}</strong>
+            <p>Queueing stays disabled until at least one document exists.</p>
+          </article>
+        </div>
       </section>
-      <section>
-        <h2>Builds</h2>
-        <button type="button" onClick={() => void handleQueueBuild()} disabled={isSubmittingBuild || documents.length === 0}>
-          {isSubmittingBuild ? "Queueing..." : "Queue Build"}
-        </button>
-        {builds.length === 0 && !isLoading ? <p>No builds found.</p> : null}
-        {builds.length > 0 ? (
-          <ul>
-            {builds.map((build) => (
-              <li key={build.id}>
-                {build.id} - {build.status} - {build.document_count} docs
-              </li>
-            ))}
-          </ul>
-        ) : null}
+
+      <section className="split-grid">
+        <article className="panel stack">
+          <div className="section__header stack">
+            <span className="section__eyebrow">Ingest</span>
+            <h2 className="section__title">Documents</h2>
+          </div>
+          <form className="form-grid form-grid--inline" onSubmit={(event) => void handleDocumentSubmit(event)}>
+            <label>
+              Document Name
+              <input
+                value={documentName}
+                onChange={(event) => {
+                  setDocumentName(event.target.value);
+                  setErrorMessage("");
+                }}
+                placeholder="draft.md"
+              />
+            </label>
+            <label>
+              Source Type
+              <select
+                value={sourceType}
+                onChange={(event) => {
+                  setSourceType(event.target.value);
+                  setErrorMessage("");
+                }}
+              >
+                <option value="file">file</option>
+                <option value="url">url</option>
+              </select>
+            </label>
+            <label>
+              Source URI
+              <input
+                value={sourceURI}
+                onChange={(event) => {
+                  setSourceURI(event.target.value);
+                  setErrorMessage("");
+                }}
+                placeholder="https://example.com/notes"
+              />
+            </label>
+            <div className="inline-actions">
+              <button className="button button--primary" type="submit" disabled={isSubmittingDocument || !documentName.trim()}>
+                {isSubmittingDocument ? "Adding..." : "Add Document"}
+              </button>
+            </div>
+          </form>
+          {documents.length === 0 && !isLoading ? <p>No documents found.</p> : null}
+          {documents.length > 0 ? (
+            <div className="list-grid">
+              {documents.map((document) => (
+                <article className="list-card" key={document.id}>
+                  <strong>{document.name} - {document.source_type} - {document.status}</strong>
+                  <div className="badge-row">
+                    <span className="badge">source: {document.source_type}</span>
+                    <span className="badge">status: {document.status}</span>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : null}
+        </article>
+
+        <aside className="panel stack">
+          <div className="section__header stack">
+            <span className="section__eyebrow">Execute</span>
+            <h2 className="section__title">Builds</h2>
+          </div>
+          <p>构建按钮只在有文档后可用，这个约束能直接映射到后续真实索引流程。</p>
+          <div className="inline-actions">
+            <button className="button button--primary" type="button" onClick={() => void handleQueueBuild()} disabled={isSubmittingBuild || documents.length === 0}>
+              {isSubmittingBuild ? "Queueing..." : "Queue Build"}
+            </button>
+          </div>
+          {builds.length === 0 && !isLoading ? <p>No builds found.</p> : null}
+          {builds.length > 0 ? (
+            <div className="list-grid">
+              {builds.map((build) => (
+                <article className="list-card" key={build.id}>
+                  <strong>{build.id} - {build.status} - {build.document_count} docs</strong>
+                  <div className="badge-row">
+                    <span className="badge">status: {build.status}</span>
+                    <span className="badge">docs: {build.document_count}</span>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : null}
+        </aside>
       </section>
     </main>
   );
